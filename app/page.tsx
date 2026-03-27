@@ -13,6 +13,17 @@ function initials(name: string) {
 const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 const NUM_MONTHS = 12;
 
+// Working days per month (index 0 = January)
+const WORKING_DAYS = [25, 20, 22, 22, 21, 22, 23, 21, 22, 22, 21, 23];
+
+function monthWorkInfo(month: number) {
+  const days = WORKING_DAYS[month - 1];
+  const full = days * 8;
+  const p75 = Math.ceil(full * 0.75);
+  const p60 = Math.ceil(full * 0.60);
+  return { days, full, p75, p60 };
+}
+
 interface MonthInfo {
   year: number;
   month: number;
@@ -212,13 +223,20 @@ function EmployeeSection({
                 <tr className="bg-white border-b border-[#e0e0e0]">
                   {months.map((mi, mIdx) => {
                     const isLast = mIdx === months.length - 1;
+                    const wi = monthWorkInfo(mi.month);
                     return (
                       <th
                         key={`${mi.year}-${mi.month}`}
                         colSpan={mi.weeks.length}
                         className={`px-2 py-1.5 text-left text-[11px] font-medium text-[#8d8d8d] ${!isLast ? "border-r border-[#e0e0e0]" : ""}`}
                       >
-                        {mi.year !== months[0].year ? `${mi.year} ` : ""}{MONTH_NAMES[mi.month - 1]}
+                        <div>{mi.year !== months[0].year ? `${mi.year} ` : ""}{MONTH_NAMES[mi.month - 1]}</div>
+                        {isAdmin && (
+                          <div className="mt-0.5 flex flex-col gap-px">
+                            <span className="text-[9.5px] text-[#a8a8a8] font-normal">{wi.days}天 · {wi.full}h</span>
+                            <span className="text-[9.5px] text-[#a8a8a8] font-normal">75%→{wi.p75} · 60%→{wi.p60}</span>
+                          </div>
+                        )}
                       </th>
                     );
                   })}
