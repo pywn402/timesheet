@@ -190,7 +190,7 @@ function EmployeeSection({
   const emp_initials = employee.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div>
+    <div id={`emp-${employee.id}`}>
       {/* Employee header */}
       <div className="flex items-center gap-2.5 mb-3 px-1">
         <div className="w-7 h-7 rounded-full bg-[#edf5ff] border border-[#0f62fe] flex items-center justify-center text-[11px] font-bold text-[#0f62fe] shrink-0">
@@ -231,6 +231,8 @@ function EmployeeSection({
                       <tr className="bg-[#0f62fe]/10 border-t border-[#0f62fe]/20">
                         <td colSpan={months.reduce((s, mi) => s + mi.weeks.length, 0)} className="px-3 py-2">
                           <div className="flex items-center gap-2">
+                            <span className="text-[12px] font-medium text-[#000000]">{row.projectName}</span>
+                            <CopyableCode code={row.projectCode} />
                             {isAdmin && (
                               <button
                                 onClick={() => onDelete(row.projectId, row.employeeId, row.employeeName)}
@@ -239,8 +241,6 @@ function EmployeeSection({
                                 <Trash2 size={11} />
                               </button>
                             )}
-                            <CopyableCode code={row.projectCode} />
-                            <span className="text-[12px] font-medium text-[#525252]">{row.projectName}</span>
                           </div>
                         </td>
                       </tr>
@@ -547,12 +547,27 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Anchor nav */}
+      {!loading && data && (
+        <div className="sticky top-0 z-40 bg-white border-b border-[#e0e0e0] px-6 py-2 flex items-center gap-2">
+          {(data.employees ?? []).map((emp) => (
+            <a
+              key={emp.id}
+              href={`#emp-${emp.id}`}
+              className="px-3 py-1 text-[13px] text-[#525252] rounded-full border border-[#e0e0e0] hover:border-[#0f62fe] hover:text-[#0f62fe] transition-colors whitespace-nowrap"
+            >
+              {emp.name}
+            </a>
+          ))}
+        </div>
+      )}
+
       <div className="px-6 py-5 max-w-[1800px] mx-auto">
         {/* Employee sections */}
         {loading ? (
           <div className="flex justify-center py-20 text-[#6f6f6f] text-sm">載入中...</div>
         ) : !data ? null : (
-          <div className="space-y-6">
+          <div className="space-y-10">
             {(data.employees ?? []).map((emp) => (
               <EmployeeSection
                 key={emp.id}
