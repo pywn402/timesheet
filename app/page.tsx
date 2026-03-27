@@ -81,7 +81,7 @@ function EditableCell({
     return (
       <td colSpan={colSpan} className={`px-1 py-0.5 ${className}`}>
         <input
-          className="w-full min-w-[44px] text-center text-[13px] bg-[#001d6c] border border-[#0f62fe] rounded outline-none text-white py-0.5"
+          className="w-full min-w-[44px] text-center text-[13px] bg-[#edf5ff] border border-[#0f62fe] rounded outline-none text-[#161616] py-0.5"
           value={input}
           autoFocus
           onChange={(e) => setInput(e.target.value)}
@@ -100,9 +100,9 @@ function EditableCell({
     <td
       colSpan={colSpan}
       onClick={() => { if (!readOnly) setEditing(true); }}
-      className={`text-center text-[13px] px-2 py-2 transition-colors ${textColor} ${className} ${readOnly ? "cursor-default" : "cursor-pointer hover:bg-[#262626]"}`}
+      className={`text-center text-[13px] px-2 py-2 transition-colors ${textColor} ${className} ${readOnly ? "cursor-default" : "cursor-pointer hover:bg-[#e8e8e8]"}`}
     >
-      {value > 0 ? value : <span className="text-[#393939]">—</span>}
+      {value > 0 ? value : <span className="text-[#8d8d8d]">—</span>}
       {footer && <div className="text-[10px] mt-0.5">{footer}</div>}
     </td>
   );
@@ -117,9 +117,9 @@ function CopyableCode({ code }: { code: string }) {
   };
   return (
     <div className="flex items-center gap-1 shrink-0">
-      <span className="font-mono text-[11px] font-bold text-[#4589ff] bg-[#001d6c] px-1.5 py-0.5 rounded">{code}</span>
-      <button onClick={handleCopy} className="text-[#6f6f6f] hover:text-[#c6c6c6] transition-colors">
-        {copied ? <Check size={11} className="text-[#42be65]" /> : <Copy size={11} />}
+      <span className="font-mono text-[11px] font-bold text-[#0f62fe] bg-[#edf5ff] px-1.5 py-0.5 rounded">{code}</span>
+      <button onClick={handleCopy} className="text-[#6f6f6f] hover:text-[#525252] transition-colors">
+        {copied ? <Check size={11} className="text-[#24a148]" /> : <Copy size={11} />}
       </button>
     </div>
   );
@@ -145,7 +145,7 @@ function EditableNumber({
   if (editing) {
     return (
       <input
-        className="w-14 text-center text-[12px] bg-[#001d6c] border border-[#0f62fe] rounded outline-none text-white py-0.5"
+        className="w-14 text-center text-[12px] bg-[#edf5ff] border border-[#0f62fe] rounded outline-none text-[#161616] py-0.5"
         value={input}
         autoFocus
         onChange={(e) => setInput(e.target.value)}
@@ -161,7 +161,7 @@ function EditableNumber({
   return (
     <span
       onClick={() => { if (!readOnly) setEditing(true); }}
-      className={`text-[#4589ff] font-semibold ${readOnly ? "" : "cursor-pointer hover:opacity-70"}`}
+      className={`text-[#0f62fe] font-semibold ${readOnly ? "" : "cursor-pointer hover:opacity-70"}`}
     >
       {value > 0 ? value : "—"}
     </span>
@@ -193,28 +193,28 @@ function EmployeeSection({
     <div>
       {/* Employee header */}
       <div className="flex items-center gap-2.5 mb-3 px-1">
-        <div className="w-7 h-7 rounded-full bg-[#001d6c] border border-[#0f62fe] flex items-center justify-center text-[11px] font-bold text-[#4589ff] shrink-0">
+        <div className="w-7 h-7 rounded-full bg-[#edf5ff] border border-[#0f62fe] flex items-center justify-center text-[11px] font-bold text-[#0f62fe] shrink-0">
           {emp_initials}
         </div>
-        <span className="text-[14px] font-semibold text-[#f4f4f4]">{employee.name}</span>
+        <span className="text-[14px] font-semibold text-[#161616]">{employee.name}</span>
       </div>
 
       {rows.length === 0 ? (
         <p className="text-[12px] text-[#6f6f6f] px-1">尚無分配專案</p>
       ) : (
-        <div className="rounded-xl border border-[#393939] overflow-hidden">
+        <div className="rounded-xl border border-[#e0e0e0] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[13px]">
               <thead>
                 {/* Month row */}
-                <tr className="bg-[#161616] border-b border-[#393939]">
+                <tr className="bg-white border-b border-[#e0e0e0]">
                   {months.map((mi, mIdx) => {
                     const isLast = mIdx === months.length - 1;
                     return (
                       <th
                         key={`${mi.year}-${mi.month}`}
                         colSpan={mi.weeks.length}
-                        className={`px-2 py-1.5 text-left text-[11px] font-medium text-[#8d8d8d] ${!isLast ? "border-r border-[#393939]" : ""}`}
+                        className={`px-2 py-1.5 text-left text-[11px] font-medium text-[#8d8d8d] ${!isLast ? "border-r border-[#e0e0e0]" : ""}`}
                       >
                         {mi.year !== months[0].year ? `${mi.year} ` : ""}{MONTH_NAMES[mi.month - 1]}
                       </th>
@@ -228,24 +228,24 @@ function EmployeeSection({
                   return (
                     <React.Fragment key={`${row.projectId}-${row.employeeId}`}>
                       {/* Project name divider row */}
-                      <tr className="bg-[#001d6c]/30 border-t border-[#0043ce]/40">
+                      <tr className="bg-[#0f62fe]/10 border-t border-[#0f62fe]/20">
                         <td colSpan={months.reduce((s, mi) => s + mi.weeks.length, 0)} className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             {isAdmin && (
                               <button
                                 onClick={() => onDelete(row.projectId, row.employeeId, row.employeeName)}
-                                className="text-[#6f6f6f] hover:text-[#fa4d56] transition-colors shrink-0"
+                                className="text-[#6f6f6f] hover:text-[#da1e28] transition-colors shrink-0"
                               >
                                 <Trash2 size={11} />
                               </button>
                             )}
                             <CopyableCode code={row.projectCode} />
-                            <span className="text-[12px] font-medium text-[#c6c6c6]">{row.projectName}</span>
+                            <span className="text-[12px] font-medium text-[#525252]">{row.projectName}</span>
                           </div>
                         </td>
                       </tr>
                       {/* Plan info row */}
-                      <tr className="bg-[#1a1a1a]">
+                      <tr className="bg-[#fafafa]">
                         {months.map((mi, mIdx) => {
                           const monthKey = `${mi.year}-${mi.month}`;
                           const md = row.monthData[monthKey];
@@ -255,14 +255,14 @@ function EmployeeSection({
                           const isLastMonth = mIdx === months.length - 1;
                           const remainColor = mAlloc === 0
                             ? "text-[#6f6f6f]"
-                            : mRemaining < 0 ? "text-[#fa4d56]"
-                            : mRemaining === 0 ? "text-[#42be65]"
-                            : "text-[#f4f4f4]";
+                            : mRemaining < 0 ? "text-[#da1e28]"
+                            : mRemaining === 0 ? "text-[#24a148]"
+                            : "text-[#161616]";
                           return (
                             <td
                               key={monthKey}
                               colSpan={mi.weeks.length}
-                              className={`px-3 py-1.5 ${!isLastMonth ? "border-r border-[#393939]" : ""}`}
+                              className={`px-3 py-1.5 ${!isLastMonth ? "border-r border-[#e0e0e0]" : ""}`}
                             >
                               <div className="flex items-center gap-1 text-[11px] whitespace-nowrap">
                                 <span className="text-[#6f6f6f]">計畫</span>
@@ -271,7 +271,7 @@ function EmployeeSection({
                                   onSave={(h) => onSaveAllocation(row.projectId, row.employeeId, mi.year, mi.month, h)}
                                   readOnly={!isAdmin}
                                 />
-                                <span className="text-[#393939] mx-0.5">|</span>
+                                <span className="text-[#8d8d8d] mx-0.5">|</span>
                                 <span className="text-[#6f6f6f]">剩餘</span>
                                 <span className={remainColor}>{mAlloc === 0 ? "—" : mRemaining}</span>
                               </div>
@@ -280,7 +280,7 @@ function EmployeeSection({
                         })}
                       </tr>
                       {/* Actual hours row */}
-                      <tr className={`bg-[#161616] ${!isLastRow ? "border-b-2 border-[#2e2e2e]" : ""}`}>
+                      <tr className={`bg-white ${!isLastRow ? "border-b-2 border-[#e0e0e0]" : ""}`}>
                         {months.flatMap((mi, mIdx) => {
                           const monthKey = `${mi.year}-${mi.month}`;
                           const md = row.monthData[monthKey];
@@ -288,14 +288,14 @@ function EmployeeSection({
                           return mi.weeks.map((week, wIdx) => {
                             const isLastWeek = wIdx === mi.weeks.length - 1;
                             const borderClass = isLastWeek && !isLastMonth
-                              ? "border-r border-[#393939]"
-                              : "border-r border-[#262626]";
+                              ? "border-r border-[#e0e0e0]"
+                              : "border-r border-[#e8e8e8]";
                             return (
                               <EditableCell
                                 key={`${mi.year}-${mi.month}-${week}`}
                                 value={md?.weeklyActual[week] ?? 0}
                                 onSave={(h) => onSaveActual(row.projectId, row.employeeId, week, mi.year, mi.month, h)}
-                                textColor="text-[#42be65]"
+                                textColor="text-[#24a148]"
                                 className={borderClass}
                                 readOnly={currentUser !== employee.name}
                               />
@@ -492,22 +492,22 @@ export default function Home() {
   const rangeLabel = data ? `${startYear}年` : "載入中...";
 
   if (!authReady || !currentUser) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-[#6f6f6f] text-sm">
+    <div className="min-h-screen bg-[#f4f4f4] flex items-center justify-center text-[#6f6f6f] text-sm">
       載入中...
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[#f4f4f4]">
       {/* Header */}
-      <header className="bg-[#161616] border-b border-[#393939] px-6 py-0 flex items-center gap-6 h-14">
-        <h1 className="text-[16px] font-semibold text-white whitespace-nowrap">IBM Design Team 工時管理</h1>
-        <div className="flex items-center gap-1 bg-[#262626] border border-[#393939] rounded-lg px-1 h-8">
-          <button onClick={prev} className="p-1 rounded hover:bg-[#393939] text-[#8d8d8d] hover:text-[#4589ff] transition-colors">
+      <header className="bg-white border-b border-[#e0e0e0] px-6 py-0 flex items-center gap-6 h-14">
+        <h1 className="text-[16px] font-semibold text-[#161616] whitespace-nowrap">IBM Design Team 工時管理</h1>
+        <div className="flex items-center gap-1 bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-1 h-8">
+          <button onClick={prev} className="p-1 rounded hover:bg-[#e0e0e0] text-[#8d8d8d] hover:text-[#0f62fe] transition-colors">
             <ChevronLeft size={15} />
           </button>
-          <span className="text-[13px] text-[#f4f4f4] min-w-[200px] text-center">{rangeLabel}</span>
-          <button onClick={next} className="p-1 rounded hover:bg-[#393939] text-[#8d8d8d] hover:text-[#4589ff] transition-colors">
+          <span className="text-[13px] text-[#161616] min-w-[200px] text-center">{rangeLabel}</span>
+          <button onClick={next} className="p-1 rounded hover:bg-[#e0e0e0] text-[#8d8d8d] hover:text-[#0f62fe] transition-colors">
             <ChevronRight size={15} />
           </button>
         </div>
@@ -520,27 +520,27 @@ export default function Home() {
             <Plus size={14} />新增分配
           </button>
         )}
-        <div className="flex items-center gap-2 ml-2 pl-4 border-l border-[#393939]">
+        <div className="flex items-center gap-2 ml-2 pl-4 border-l border-[#e0e0e0]">
           {isAdmin && (
             <button
               onClick={() => setShowPwModal(true)}
               title="管理密碼"
-              className="p-1.5 text-[#6f6f6f] hover:text-[#4589ff] transition-colors rounded hover:bg-[#262626]"
+              className="p-1.5 text-[#6f6f6f] hover:text-[#0f62fe] transition-colors rounded hover:bg-[#e8e8e8]"
             >
               <KeyRound size={14} />
             </button>
           )}
-          <div className="w-7 h-7 rounded-full bg-[#001d6c] border border-[#0f62fe] flex items-center justify-center text-[11px] font-bold text-[#4589ff]">
+          <div className="w-7 h-7 rounded-full bg-[#edf5ff] border border-[#0f62fe] flex items-center justify-center text-[11px] font-bold text-[#0f62fe]">
             {initials(currentUser)}
           </div>
-          <span className="text-[13px] text-[#f4f4f4]">{currentUser}</span>
+          <span className="text-[13px] text-[#161616]">{currentUser}</span>
           {isAdmin && (
-            <span className="text-[11px] bg-[#001d6c] text-[#4589ff] rounded px-1.5 py-0.5 font-medium">管理員</span>
+            <span className="text-[11px] bg-[#edf5ff] text-[#0f62fe] rounded px-1.5 py-0.5 font-medium">管理員</span>
           )}
           <button
             onClick={handleLogout}
             title="登出"
-            className="p-1.5 text-[#6f6f6f] hover:text-[#fa4d56] transition-colors rounded hover:bg-[#2d1516]"
+            className="p-1.5 text-[#6f6f6f] hover:text-[#da1e28] transition-colors rounded hover:bg-[#fff1f1]"
           >
             <LogOut size={14} />
           </button>
@@ -576,13 +576,13 @@ export default function Home() {
           className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
           onClick={(e) => { if (e.target === e.currentTarget) { setShowModal(false); setFormError(""); setForm({ projectCode: "", projectName: "", employeeName: "", selectedProjectId: "" }); } }}
         >
-          <div className="bg-[#161616] border border-[#393939] rounded-2xl p-6 w-[460px] shadow-2xl">
+          <div className="bg-white border border-[#e0e0e0] rounded-2xl p-6 w-[460px] shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-[15px] font-semibold text-white">新增工時分配</h2>
+                <h2 className="text-[15px] font-semibold text-[#161616]">新增工時分配</h2>
                 <p className="text-[12px] text-[#8d8d8d] mt-0.5">{rangeLabel}</p>
               </div>
-              <button onClick={() => { setShowModal(false); setFormError(""); setForm({ projectCode: "", projectName: "", employeeName: "", selectedProjectId: "" }); }} className="text-[#6f6f6f] hover:text-[#f4f4f4] transition-colors">
+              <button onClick={() => { setShowModal(false); setFormError(""); setForm({ projectCode: "", projectName: "", employeeName: "", selectedProjectId: "" }); }} className="text-[#6f6f6f] hover:text-[#161616] transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -593,7 +593,7 @@ export default function Home() {
                 <label className="block text-[11px] text-[#8d8d8d] mb-1.5 uppercase tracking-wider">專案 *</label>
                 <select
                   autoFocus
-                  className="w-full bg-[#262626] border border-[#393939] rounded-lg px-3 py-2 text-[13px] text-white outline-none focus:border-[#0f62fe] transition-colors appearance-none cursor-pointer"
+                  className="w-full bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2 text-[13px] text-[#161616] outline-none focus:border-[#0f62fe] transition-colors appearance-none cursor-pointer"
                   value={form.selectedProjectId}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -623,7 +623,7 @@ export default function Home() {
                     <div key={key}>
                       <label className="block text-[11px] text-[#8d8d8d] mb-1.5 uppercase tracking-wider">{label}</label>
                       <input
-                        className="w-full bg-[#262626] border border-[#393939] rounded-lg px-3 py-2 text-[13px] text-white placeholder-[#6f6f6f] outline-none focus:border-[#0f62fe] transition-colors"
+                        className="w-full bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2 text-[13px] text-[#161616] placeholder-[#6f6f6f] outline-none focus:border-[#0f62fe] transition-colors"
                         value={form[key as "projectCode" | "projectName"]}
                         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                         placeholder={placeholder}
@@ -636,15 +636,15 @@ export default function Home() {
 
               {/* Preview selected project */}
               {form.selectedProjectId && form.selectedProjectId !== "__new__" && (
-                <div className="flex gap-3 bg-[#1c1c1c] border border-[#393939] rounded-lg px-3 py-2">
-                  <span className="text-[12px] font-mono text-[#4589ff]">{form.projectCode}</span>
+                <div className="flex gap-3 bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2">
+                  <span className="text-[12px] font-mono text-[#0f62fe]">{form.projectCode}</span>
                   <span className="text-[12px] text-[#8d8d8d]">{form.projectName}</span>
                 </div>
               )}
               <div>
                 <label className="block text-[11px] text-[#8d8d8d] mb-1.5 uppercase tracking-wider">人員 *</label>
                 <select
-                  className="w-full bg-[#262626] border border-[#393939] rounded-lg px-3 py-2 text-[13px] text-white outline-none focus:border-[#0f62fe] transition-colors appearance-none cursor-pointer"
+                  className="w-full bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2 text-[13px] text-[#161616] outline-none focus:border-[#0f62fe] transition-colors appearance-none cursor-pointer"
                   value={form.employeeName}
                   onChange={(e) => setForm((f) => ({ ...f, employeeName: e.target.value }))}
                 >
@@ -657,13 +657,13 @@ export default function Home() {
               <p className="text-[11px] text-[#6f6f6f]">新增後可點擊計畫列格子設定各月分配工時。</p>
 
               {formError && (
-                <p className="text-[#fa4d56] text-[12px] bg-[#2d1516] border border-[#520408] rounded-lg px-3 py-2">{formError}</p>
+                <p className="text-[#da1e28] text-[12px] bg-[#fff1f1] border border-[#ffd7d9] rounded-lg px-3 py-2">{formError}</p>
               )}
 
               <div className="flex justify-end gap-3 pt-1">
                 <button
                   onClick={() => { setShowModal(false); setFormError(""); setForm({ projectCode: "", projectName: "", employeeName: "", selectedProjectId: "" }); }}
-                  className="px-4 py-2 text-[13px] text-[#a8a8a8] border border-[#393939] rounded-lg hover:bg-[#262626] transition-colors"
+                  className="px-4 py-2 text-[13px] text-[#a8a8a8] border border-[#e0e0e0] rounded-lg hover:bg-[#e8e8e8] transition-colors"
                 >
                   取消
                 </button>
@@ -686,13 +686,13 @@ export default function Home() {
           className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
           onClick={(e) => { if (e.target === e.currentTarget) setShowPwModal(false); }}
         >
-          <div className="bg-[#161616] border border-[#393939] rounded-2xl p-6 w-[420px] shadow-2xl">
+          <div className="bg-white border border-[#e0e0e0] rounded-2xl p-6 w-[420px] shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-[15px] font-semibold text-white">管理密碼</h2>
+                <h2 className="text-[15px] font-semibold text-[#161616]">管理密碼</h2>
                 <p className="text-[12px] text-[#8d8d8d] mt-0.5">為每位成員設定或重設登入密碼</p>
               </div>
-              <button onClick={() => setShowPwModal(false)} className="text-[#6f6f6f] hover:text-[#f4f4f4] transition-colors">
+              <button onClick={() => setShowPwModal(false)} className="text-[#6f6f6f] hover:text-[#161616] transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -702,27 +702,27 @@ export default function Home() {
                 return (
                   <div key={emp.id} className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#001d6c] border border-[#0f62fe] flex items-center justify-center text-[9px] font-bold text-[#4589ff] shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-[#edf5ff] border border-[#0f62fe] flex items-center justify-center text-[9px] font-bold text-[#0f62fe] shrink-0">
                         {initials(emp.name)}
                       </div>
-                      <span className="text-[13px] text-[#f4f4f4] w-20 shrink-0">{emp.name}</span>
+                      <span className="text-[13px] text-[#161616] w-20 shrink-0">{emp.name}</span>
                       <input
                         type="password"
                         placeholder="新密碼（至少 6 字元）"
                         value={s.pw}
                         onChange={(e) => setPw(emp.id, { pw: e.target.value, error: "", done: false })}
                         onKeyDown={(e) => { if (e.key === "Enter") savePassword(emp); }}
-                        className="flex-1 bg-[#262626] border border-[#393939] rounded-lg px-3 py-1.5 text-[12px] text-white placeholder-[#6f6f6f] outline-none focus:border-[#0f62fe] transition-colors"
+                        className="flex-1 bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-1.5 text-[12px] text-[#161616] placeholder-[#6f6f6f] outline-none focus:border-[#0f62fe] transition-colors"
                       />
                       <button
                         onClick={() => savePassword(emp)}
                         disabled={s.loading || !s.pw}
-                        className="px-3 py-1.5 text-[12px] bg-[#0f62fe] hover:bg-[#0353e9] disabled:bg-[#393939] disabled:text-[#6f6f6f] text-white rounded-lg transition-colors shrink-0"
+                        className="px-3 py-1.5 text-[12px] bg-[#0f62fe] hover:bg-[#0353e9] disabled:bg-[#e0e0e0] disabled:text-[#6f6f6f] text-white rounded-lg transition-colors shrink-0"
                       >
                         {s.done ? <Check size={13} /> : s.loading ? "..." : "設定"}
                       </button>
                     </div>
-                    {s.error && <p className="text-[11px] text-[#fa4d56] pl-8">{s.error}</p>}
+                    {s.error && <p className="text-[11px] text-[#da1e28] pl-8">{s.error}</p>}
                   </div>
                 );
               })}
