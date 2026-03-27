@@ -122,6 +122,11 @@ export async function createTsProject(code: string, name: string): Promise<numbe
   return Number(result.lastInsertRowid);
 }
 
+export async function updateTsProject(id: number, code: string, name: string): Promise<void> {
+  await ensureInit();
+  await getClient().execute({ sql: "UPDATE ts_projects SET code = ?, name = ? WHERE id = ?", args: [code, name, id] });
+}
+
 // ---- Employees ----
 
 export async function getTsEmployees(): Promise<TsEmployee[]> {

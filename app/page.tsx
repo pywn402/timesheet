@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, LogOut, KeyRound, Check, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, LogOut, KeyRound, Check, Copy, Pencil } from "lucide-react";
 
 const ADMIN_USER = "Phoebe";
 
@@ -177,6 +177,7 @@ function EmployeeSection({
   onSaveAllocation,
   onSaveActual,
   onDelete,
+  onEdit,
 }: {
   employee: Employee;
   rows: MultiMonthRow[];
@@ -186,6 +187,7 @@ function EmployeeSection({
   onSaveAllocation: (projectId: number, employeeId: number, year: number, month: number, hours: number) => void;
   onSaveActual: (projectId: number, employeeId: number, weekStart: string, year: number, month: number, hours: number) => void;
   onDelete: (projectId: number, employeeId: number, name: string) => void;
+  onEdit: (projectId: number, code: string, name: string) => void;
 }) {
   const emp_initials = employee.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -233,6 +235,14 @@ function EmployeeSection({
                           <div className="flex items-center gap-2">
                             <span className="text-[12px] font-medium text-[#000000]">{row.projectName}</span>
                             <CopyableCode code={row.projectCode} />
+                            {isAdmin && (
+                              <button
+                                onClick={() => onEdit(row.projectId, row.projectCode, row.projectName)}
+                                className="text-[#6f6f6f] hover:text-[#0f62fe] transition-colors shrink-0"
+                              >
+                                <Pencil size={11} />
+                              </button>
+                            )}
                             {isAdmin && (
                               <button
                                 onClick={() => onDelete(row.projectId, row.employeeId, row.employeeName)}
@@ -363,6 +373,28 @@ export default function Home() {
     if (!res.ok) { setPw(emp.id, { loading: false, error: json.error ?? "失敗" }); return; }
     setPw(emp.id, { loading: false, done: true, pw: "" });
     setTimeout(() => setPw(emp.id, { done: false }), 2000);
+  };
+
+  const [editProject, setEditProject] = useState<{ id: number; code: string; name: string } | null>(null);
+  const [editError, setEditError] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+
+  const saveEditProject = async () => {
+    if (!editProject) return;
+    if (!editProject.code.trim() || !editProject.name.trim()) { setEditError("代碼與名稱不能為空"); return; }
+    setEditLoading(true);
+    try {
+      const res = await fetch("/api/projects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editProject.id, code: editProject.code.trim(), name: editProject.name.trim() }),
+      });
+      if (!res.ok) { setEditError((await res.json()).error ?? "更新失敗"); return; }
+      setEditProject(null);
+      await load();
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const [showModal, setShowModal] = useState(false);
@@ -579,11 +611,62 @@ export default function Home() {
                 onSaveAllocation={saveAllocation}
                 onSaveActual={saveActual}
                 onDelete={deleteRow}
+                onEdit={(id, code, name) => { setEditProject({ id, code, name }); setEditError(""); }}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Project Modal */}
+      {editProject && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+          onClick={(e) => { if (e.target === e.currentTarget) setEditProject(null); }}
+        >
+          <div className="bg-white border border-[#e0e0e0] rounded-2xl p-6 w-[400px] shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-[15px] font-semibold text-[#161616]">編輯專案</h2>
+              <button onClick={() => setEditProject(null)} className="text-[#6f6f6f] hover:text-[#161616] transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: "code", label: "專案代碼 *" },
+                { key: "name", label: "專案名稱 *" },
+              ].map(({ key, label }) => (
+                <div key={key}>
+                  <label className="block text-[11px] text-[#8d8d8d] mb-1.5 uppercase tracking-wider">{label}</label>
+                  <input
+                    className="w-full bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2 text-[13px] text-[#161616] outline-none focus:border-[#0f62fe] transition-colors"
+                    value={editProject[key as "code" | "name"]}
+                    onChange={(e) => setEditProject((p) => p ? { ...p, [key]: e.target.value } : p)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveEditProject(); }}
+                    autoFocus={key === "code"}
+                  />
+                </div>
+              ))}
+              {editError && <p className="text-[#da1e28] text-[12px] bg-[#fff1f1] border border-[#ffd7d9] rounded-lg px-3 py-2">{editError}</p>}
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  onClick={() => setEditProject(null)}
+                  className="px-4 py-2 text-[13px] text-[#a8a8a8] border border-[#e0e0e0] rounded-lg hover:bg-[#e8e8e8] transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={saveEditProject}
+                  disabled={editLoading}
+                  className="px-4 py-2 text-[13px] bg-[#0f62fe] hover:bg-[#0353e9] text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {editLoading ? "儲存中..." : "儲存"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Modal */}
       {showModal && (
