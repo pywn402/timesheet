@@ -102,7 +102,7 @@ function EditableCell({
       onClick={() => { if (!readOnly) setEditing(true); }}
       className={`text-center text-[13px] px-2 py-2 transition-colors ${textColor} ${className} ${readOnly ? "cursor-default" : "cursor-pointer hover:bg-[#e8e8e8]"}`}
     >
-      {value > 0 ? value : <span className="text-[#8d8d8d]">—</span>}
+      {value > 0 ? value : <span className="text-[#d0d0d0] text-[10px]">–</span>}
       {footer && <div className="text-[10px] mt-0.5">{footer}</div>}
     </td>
   );
@@ -233,7 +233,7 @@ function EmployeeSection({
                       <tr className="bg-[#0f62fe]/10 border-t border-[#0f62fe]/20">
                         <td colSpan={months.reduce((s, mi) => s + mi.weeks.length, 0)} className="px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[12px] font-medium text-[#000000]">{row.projectName}</span>
+                            <span className="text-[13px] font-medium text-[#000000]">{row.projectName}</span>
                             <CopyableCode code={row.projectCode} />
                             {isAdmin && (
                               <button
