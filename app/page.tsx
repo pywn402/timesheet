@@ -269,6 +269,31 @@ function EmployeeSection({
                                 <Trash2 size={11} />
                               </button>
                             )}
+                            {isAdmin && (() => {
+                              const totalAlloc = months.reduce((s, mi) => {
+                                const md = row.monthData[`${mi.year}-${mi.month}`];
+                                return s + (md?.allocatedHours ?? 0);
+                              }, 0);
+                              const totalActual = months.reduce((s, mi) => {
+                                const md = row.monthData[`${mi.year}-${mi.month}`];
+                                return s + Object.values(md?.weeklyActual ?? {}).reduce((a, v) => a + v, 0);
+                              }, 0);
+                              const totalRemain = totalAlloc - totalActual;
+                              const remainColor = totalAlloc === 0
+                                ? "text-[#6f6f6f]"
+                                : totalRemain < 0 ? "text-[#da1e28]"
+                                : totalRemain === 0 ? "text-[#24a148]"
+                                : "text-[#161616]";
+                              return (
+                                <div className="ml-2 flex items-center gap-1.5 text-[11px] border-l border-[#0f62fe]/30 pl-2.5">
+                                  <span className="text-[#6f6f6f]">計畫</span>
+                                  <span className="font-medium text-[#161616]">{totalAlloc}h</span>
+                                  <span className="text-[#c6c6c6]">·</span>
+                                  <span className="text-[#6f6f6f]">剩餘</span>
+                                  <span className={`font-medium ${remainColor}`}>{totalRemain}h</span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
