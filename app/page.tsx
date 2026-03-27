@@ -221,23 +221,6 @@ function EmployeeSection({
                     );
                   })}
                 </tr>
-                {/* Week row */}
-                <tr className="bg-[#161616] border-b border-[#393939]">
-                  {months.flatMap((mi, mIdx) =>
-                    mi.weeks.map((week, wIdx) => {
-                      const isLastWeek = wIdx === mi.weeks.length - 1;
-                      const isLastMonth = mIdx === months.length - 1;
-                      const borderClass = isLastWeek && !isLastMonth
-                        ? "border-r border-[#393939]"
-                        : "border-r border-[#262626]";
-                      return (
-                        <th key={`${mi.year}-${mi.month}-${week}`} className={`text-center px-2 py-1.5 text-[#8d8d8d] font-normal min-w-[44px] ${borderClass}`}>
-                          <span className="text-[11px]">W{wIdx + 1}</span>
-                        </th>
-                      );
-                    })
-                  )}
-                </tr>
               </thead>
               <tbody>
                 {rows.map((row, rowIdx) => {
