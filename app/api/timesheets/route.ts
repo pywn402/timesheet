@@ -90,6 +90,12 @@ export async function GET(request: Request) {
     getTsEntries(allWeeks),
   ]);
 
+  // O(1) lookup maps
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
+  const employeeMap = new Map(employees.map((e) => [e.id, e]));
+  const entryMap = new Map(entries.map((e) => [`${e.project_id}-${e.employee_id}-${e.week_start}`, e]));
+  const monthInfoMap = new Map(monthInfos.map((mi) => [`${mi.year}-${mi.month}`, mi]));
+
   // Group by project+employee
   const rowMap = new Map<string, {
     projectId: number;
@@ -103,8 +109,8 @@ export async function GET(request: Request) {
   for (const alloc of allocations) {
     const key = `${alloc.project_id}-${alloc.employee_id}`;
     if (!rowMap.has(key)) {
-      const project = projects.find((p) => p.id === alloc.project_id);
-      const employee = employees.find((e) => e.id === alloc.employee_id);
+      const project = projectMap.get(alloc.project_id);
+      const employee = employeeMap.get(alloc.employee_id);
       rowMap.set(key, {
         projectId: alloc.project_id,
         projectCode: project?.code ?? "",
@@ -117,16 +123,11 @@ export async function GET(request: Request) {
 
     const row = rowMap.get(key)!;
     const monthKey = `${alloc.year}-${alloc.month}`;
-    const monthInfo = monthInfos.find((mi) => mi.year === alloc.year && mi.month === alloc.month);
+    const monthInfo = monthInfoMap.get(monthKey);
 
     const weeklyActual: Record<string, number> = {};
     for (const week of monthInfo?.weeks ?? []) {
-      const entry = entries.find(
-        (e) =>
-          e.project_id === alloc.project_id &&
-          e.employee_id === alloc.employee_id &&
-          e.week_start === week
-      );
+      const entry = entryMap.get(`${alloc.project_id}-${alloc.employee_id}-${week}`);
       weeklyActual[week] = entry?.actual_hours ?? 0;
     }
 

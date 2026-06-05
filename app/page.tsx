@@ -16,6 +16,60 @@ const NUM_MONTHS = 12;
 // Working days per month (index 0 = January)
 const WORKING_DAYS = [25, 20, 22, 22, 21, 22, 23, 21, 22, 22, 21, 23];
 
+// Taiwan public holidays (YYYY-MM-DD) — fixed + major lunar holidays
+const TAIWAN_HOLIDAYS = new Set([
+  // 2025
+  "2025-01-01",
+  "2025-01-27", "2025-01-28", "2025-01-29", "2025-01-30", "2025-01-31",
+  "2025-02-28", "2025-04-03", "2025-04-04", "2025-05-01", "2025-05-30",
+  "2025-10-06", "2025-10-10",
+  // 2026
+  "2026-01-01",
+  "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20",
+  "2026-02-27",
+  "2026-04-03",
+  "2026-05-01",
+  "2026-06-19",
+  "2026-09-25",
+  "2026-10-09",
+  // 2027
+  "2027-01-01",
+  "2027-02-05", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09",
+  "2027-02-28",
+  "2027-04-04",
+  "2027-05-01",
+  "2027-10-10",
+]);
+
+/**
+ * For the first or last week of a month (if it crosses the month boundary),
+ * returns how many working days from that week fall within the given month.
+ * Returns "" if the week is entirely within the month (not partial).
+ * Returns "放假/0" if all working days in this month from this week are holidays.
+ */
+function getPartialWeekLabel(weekStart: string, year: number, month: number): string {
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+
+  const [wy, wm, wd] = weekStart.split("-").map(Number);
+  const monday = new Date(wy, wm - 1, wd);
+  const friday = new Date(wy, wm - 1, wd + 4);
+
+  const isFirstPartial = monday.getTime() < monthStart.getTime();
+  const isLastPartial = friday.getTime() > monthEnd.getTime();
+  if (!isFirstPartial && !isLastPartial) return "";
+
+  let count = 0;
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(wy, wm - 1, wd + i);
+    if (d >= monthStart && d <= monthEnd) {
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!TAIWAN_HOLIDAYS.has(ds)) count++;
+    }
+  }
+  return count === 0 ? "放假/0" : `${count}天`;
+}
+
 function monthWorkInfo(month: number) {
   const days = WORKING_DAYS[month - 1];
   const full = days * 8;
@@ -239,6 +293,29 @@ function EmployeeSection({
                         )}
                       </th>
                     );
+                  })}
+                </tr>
+                {/* Partial-week indicator row */}
+                <tr className="bg-[#d0e2ff] border-b border-[#b8cce8]">
+                  {months.flatMap((mi, mIdx) => {
+                    const isLastMonth = mIdx === months.length - 1;
+                    return mi.weeks.map((week, wIdx) => {
+                      const isLastWeek = wIdx === mi.weeks.length - 1;
+                      const borderClass = isLastWeek && !isLastMonth
+                        ? "border-r-2 border-[#a8bcd8]"
+                        : "border-r border-[#b8cce8]";
+                      const label = (wIdx === 0 || wIdx === mi.weeks.length - 1)
+                        ? getPartialWeekLabel(week, mi.year, mi.month)
+                        : "";
+                      return (
+                        <th
+                          key={`pw-${mIdx}-${wIdx}`}
+                          className={`py-0.5 text-center text-[10px] font-semibold text-[#0043ce] ${borderClass}`}
+                        >
+                          {label}
+                        </th>
+                      );
+                    });
                   })}
                 </tr>
               </thead>
@@ -638,6 +715,11 @@ export default function Home() {
       )}
 
       <div className="px-6 py-5 max-w-[1800px] mx-auto">
+        {/* Notice banner */}
+        <div className="mb-5 flex items-center gap-2 bg-[#fff8e1] border border-[#f0d050] rounded-xl px-4 py-2.5 text-[13px] text-[#7a5a00]">
+          <span>‼️</span>
+          <span>若沒有請假，一週最少要 <span className="font-semibold">24 hr billable</span>（3 個工作天）</span>
+        </div>
         {/* Employee sections */}
         {loading ? (
           <div className="flex justify-center py-20 text-[#6f6f6f] text-sm">載入中...</div>

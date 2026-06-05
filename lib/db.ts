@@ -16,7 +16,10 @@ let _initialized: Promise<void> | null = null;
 
 async function ensureInit(): Promise<void> {
   if (!_initialized) {
-    _initialized = initSchema();
+    _initialized = initSchema().catch((e) => {
+      _initialized = null; // reset so next call retries
+      throw e;
+    });
   }
   return _initialized;
 }
@@ -66,7 +69,7 @@ async function initSchema(): Promise<void> {
   )`);
 
   // Seed default employees in fixed display order
-  const seedNames = ["Phoebe", "Lu Ju", "Mark", "Wen", "Erin"];
+  const seedNames = ["Phoebe", "Lu Ju", "Wen", "Erin"];
   for (const name of seedNames) {
     await db.execute({ sql: "INSERT OR IGNORE INTO ts_employees (name) VALUES (?)", args: [name] });
   }
