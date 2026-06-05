@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Eye, EyeOff } from "lucide-react";
 
@@ -10,6 +10,14 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [employees, setEmployees] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/auth/employees")
+      .then((r) => r.ok ? r.json() : [])
+      .then(setEmployees)
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +65,7 @@ export default function LoginPage() {
                 className="w-full bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2.5 pr-9 text-[14px] text-[#161616] outline-none focus:border-[#0f62fe] transition-colors appearance-none cursor-pointer"
               >
                 <option value="" disabled className="text-[#6f6f6f]">選擇姓名</option>
-                {["Phoebe", "Lu Ju", "Mark", "Wen", "Erin"].map((name) => (
+                {employees.map((name) => (
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>
