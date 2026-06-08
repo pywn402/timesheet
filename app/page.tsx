@@ -78,6 +78,15 @@ function monthWorkInfo(month: number) {
   return { days, full, p75, p60 };
 }
 
+// Months strictly before the current calendar month are considered "past"
+// and rendered in a disabled, grayed-out style (read-only).
+function isPastMonth(year: number, month: number): boolean {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth() + 1;
+  return year < curYear || (year === curYear && month < curMonth);
+}
+
 interface MonthInfo {
   year: number;
   month: number;
@@ -195,10 +204,12 @@ function EditableNumber({
   value,
   onSave,
   readOnly,
+  muted = false,
 }: {
   value: number;
   onSave: (v: number) => void;
   readOnly: boolean;
+  muted?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState(String(value));
@@ -226,7 +237,7 @@ function EditableNumber({
   return (
     <span
       onClick={() => { if (!readOnly) setEditing(true); }}
-      className={`text-[#0f62fe] font-semibold ${readOnly ? "" : "cursor-pointer hover:opacity-70"}`}
+      className={`${muted ? "text-[#c6c6c6]" : "text-[#0f62fe]"} font-semibold ${readOnly ? "" : "cursor-pointer hover:opacity-70"}`}
     >
       {value > 0 ? value : "—"}
     </span>
@@ -278,17 +289,23 @@ function EmployeeSection({
                   {months.map((mi, mIdx) => {
                     const isLast = mIdx === months.length - 1;
                     const wi = monthWorkInfo(mi.month);
+                    const past = isPastMonth(mi.year, mi.month);
                     return (
                       <th
                         key={`${mi.year}-${mi.month}`}
                         colSpan={mi.weeks.length}
-                        className={`px-2 py-1.5 text-left text-[11px] font-medium text-[#8d8d8d] ${!isLast ? "border-r border-[#e0e0e0]" : ""}`}
+                        className={`px-2 py-1.5 text-left text-[11px] font-medium ${past ? "bg-[#f4f4f4] text-[#c6c6c6]" : "text-[#8d8d8d]"} ${!isLast ? "border-r border-[#e0e0e0]" : ""}`}
                       >
-                        <div>{mi.year !== months[0].year ? `${mi.year} ` : ""}{MONTH_NAMES[mi.month - 1]}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span>{mi.year !== months[0].year ? `${mi.year} ` : ""}{MONTH_NAMES[mi.month - 1]}</span>
+                          {past && (
+                            <span className="text-[9px] font-normal text-[#a8a8a8] bg-[#e8e8e8] rounded px-1 py-px">已過</span>
+                          )}
+                        </div>
                         {isAdmin && (
                           <div className="mt-0.5 flex flex-col gap-px">
-                            <span className="text-[9.5px] text-[#a8a8a8] font-normal">{wi.days}天 · {wi.full}h</span>
-                            <span className="text-[9.5px] text-[#a8a8a8] font-normal">75%→{wi.p75} · 60%→{wi.p60}</span>
+                            <span className={`text-[9.5px] font-normal ${past ? "text-[#c6c6c6]" : "text-[#a8a8a8]"}`}>{wi.days}天 · {wi.full}h</span>
+                            <span className={`text-[9.5px] font-normal ${past ? "text-[#c6c6c6]" : "text-[#a8a8a8]"}`}>75%→{wi.p75} · 60%→{wi.p60}</span>
                           </div>
                         )}
                       </th>
@@ -299,18 +316,19 @@ function EmployeeSection({
                 <tr className="bg-[#d0e2ff] border-b border-[#b8cce8]">
                   {months.flatMap((mi, mIdx) => {
                     const isLastMonth = mIdx === months.length - 1;
+                    const past = isPastMonth(mi.year, mi.month);
                     return mi.weeks.map((week, wIdx) => {
                       const isLastWeek = wIdx === mi.weeks.length - 1;
                       const borderClass = isLastWeek && !isLastMonth
-                        ? "border-r-2 border-[#a8bcd8]"
-                        : "border-r border-[#b8cce8]";
+                        ? (past ? "border-r-2 border-[#dcdcdc]" : "border-r-2 border-[#a8bcd8]")
+                        : (past ? "border-r border-[#e8e8e8]" : "border-r border-[#b8cce8]");
                       const label = (wIdx === 0 || wIdx === mi.weeks.length - 1)
                         ? getPartialWeekLabel(week, mi.year, mi.month)
                         : "";
                       return (
                         <th
                           key={`pw-${mIdx}-${wIdx}`}
-                          className={`py-0.5 text-center text-[10px] font-semibold text-[#0043ce] ${borderClass}`}
+                          className={`py-0.5 text-center text-[10px] font-semibold ${past ? "bg-[#f4f4f4] text-[#c6c6c6]" : "text-[#0043ce]"} ${borderClass}`}
                         >
                           {label}
                         </th>
@@ -383,7 +401,10 @@ function EmployeeSection({
                           const mActual = Object.values(md?.weeklyActual ?? {}).reduce((s, v) => s + v, 0);
                           const mRemaining = mAlloc - mActual;
                           const isLastMonth = mIdx === months.length - 1;
-                          const remainColor = mAlloc === 0
+                          const past = isPastMonth(mi.year, mi.month);
+                          const remainColor = past
+                            ? "text-[#c6c6c6]"
+                            : mAlloc === 0
                             ? "text-[#6f6f6f]"
                             : mRemaining < 0 ? "text-[#da1e28]"
                             : mRemaining === 0 ? "text-[#24a148]"
@@ -392,17 +413,18 @@ function EmployeeSection({
                             <td
                               key={monthKey}
                               colSpan={mi.weeks.length}
-                              className={`px-3 py-1.5 ${!isLastMonth ? "border-r border-[#e0e0e0]" : ""}`}
+                              className={`px-3 py-1.5 ${past ? "bg-[#f4f4f4]" : ""} ${!isLastMonth ? "border-r border-[#e0e0e0]" : ""}`}
                             >
                               <div className="flex items-center gap-1 text-[11px] whitespace-nowrap">
-                                <span className="text-[#6f6f6f]">計畫</span>
+                                <span className={past ? "text-[#c6c6c6]" : "text-[#6f6f6f]"}>計畫</span>
                                 <EditableNumber
                                   value={mAlloc}
                                   onSave={(h) => onSaveAllocation(row.projectId, row.employeeId, mi.year, mi.month, h)}
-                                  readOnly={!isAdmin}
+                                  readOnly={!isAdmin || past}
+                                  muted={past}
                                 />
-                                <span className="text-[#8d8d8d] mx-0.5">|</span>
-                                <span className="text-[#6f6f6f]">剩餘</span>
+                                <span className={past ? "text-[#dcdcdc] mx-0.5" : "text-[#8d8d8d] mx-0.5"}>|</span>
+                                <span className={past ? "text-[#c6c6c6]" : "text-[#6f6f6f]"}>剩餘</span>
                                 <span className={remainColor}>{mAlloc === 0 ? "—" : mRemaining}</span>
                               </div>
                             </td>
@@ -415,6 +437,7 @@ function EmployeeSection({
                           const monthKey = `${mi.year}-${mi.month}`;
                           const md = row.monthData[monthKey];
                           const isLastMonth = mIdx === months.length - 1;
+                          const past = isPastMonth(mi.year, mi.month);
                           return mi.weeks.map((week, wIdx) => {
                             const isLastWeek = wIdx === mi.weeks.length - 1;
                             const borderClass = isLastWeek && !isLastMonth
@@ -425,9 +448,9 @@ function EmployeeSection({
                                 key={`${mi.year}-${mi.month}-${week}`}
                                 value={md?.weeklyActual[week] ?? 0}
                                 onSave={(h) => onSaveActual(row.projectId, row.employeeId, week, mi.year, mi.month, h)}
-                                textColor="text-[#24a148]"
-                                className={borderClass}
-                                readOnly={currentUser !== employee.name}
+                                textColor={past ? "text-[#c6c6c6]" : "text-[#24a148]"}
+                                className={`${borderClass} ${past ? "bg-[#fbfbfb]" : ""}`}
+                                readOnly={currentUser !== employee.name || past}
                               />
                             );
                           });
