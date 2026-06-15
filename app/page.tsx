@@ -550,7 +550,8 @@ export default function Home() {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/timesheets?startYear=${startYear}&startMonth=1&numMonths=${NUM_MONTHS}`
+        `/api/timesheets?startYear=${startYear}&startMonth=1&numMonths=${NUM_MONTHS}`,
+        { cache: "no-store" }
       );
       if (!res.ok) return;
       setData(await res.json());

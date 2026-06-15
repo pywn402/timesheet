@@ -61,6 +61,9 @@ function nextMonth(year: number, month: number) {
   return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 }
 
+// Always read fresh data — avoid edge/CDN caching serving stale results to other users
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const now = new Date();
@@ -143,7 +146,10 @@ export async function GET(request: Request) {
     return { ...row, totalAllocated, totalActual };
   });
 
-  return NextResponse.json({ months: monthInfos, rows, employees });
+  return NextResponse.json(
+    { months: monthInfos, rows, employees },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(request: Request) {
