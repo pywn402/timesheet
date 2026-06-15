@@ -139,10 +139,15 @@ export async function GET(request: Request) {
 
   const rows = Array.from(rowMap.values()).map((row) => {
     const totalAllocated = Object.values(row.monthData).reduce((s, m) => s + m.allocatedHours, 0);
-    const totalActual = Object.values(row.monthData).reduce(
-      (s, m) => s + Object.values(m.weeklyActual).reduce((a, b) => a + b, 0),
-      0
-    );
+    // Boundary weeks are shared between two adjacent months' monthData —
+    // dedupe by week_start so those hours aren't counted twice.
+    const weekHours = new Map<string, number>();
+    for (const m of Object.values(row.monthData)) {
+      for (const [week, hrs] of Object.entries(m.weeklyActual)) {
+        weekHours.set(week, hrs);
+      }
+    }
+    const totalActual = Array.from(weekHours.values()).reduce((a, b) => a + b, 0);
     return { ...row, totalAllocated, totalActual };
   });
 

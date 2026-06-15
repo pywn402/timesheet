@@ -369,10 +369,16 @@ function EmployeeSection({
                                 const md = row.monthData[`${mi.year}-${mi.month}`];
                                 return s + (md?.allocatedHours ?? 0);
                               }, 0);
-                              const totalActual = months.reduce((s, mi) => {
+                              // Boundary weeks are shared between two adjacent months' tables —
+                              // dedupe by week_start so those hours aren't counted twice.
+                              const weekHours = new Map<string, number>();
+                              for (const mi of months) {
                                 const md = row.monthData[`${mi.year}-${mi.month}`];
-                                return s + Object.values(md?.weeklyActual ?? {}).reduce((a, v) => a + v, 0);
-                              }, 0);
+                                for (const [week, hrs] of Object.entries(md?.weeklyActual ?? {})) {
+                                  weekHours.set(week, hrs);
+                                }
+                              }
+                              const totalActual = Array.from(weekHours.values()).reduce((a, v) => a + v, 0);
                               const totalRemain = totalAlloc - totalActual;
                               const remainColor = totalAlloc === 0
                                 ? "text-[#6f6f6f]"
