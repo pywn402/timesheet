@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
 
     if (type === "plan" && weekStart) {
       await upsertTsWeeklyPlan(projectId, employeeId, weekStart, h);
-    } else if (type === "actual" && weekStart) {
-      await upsertTsEntry(projectId, employeeId, weekStart, h);
+    } else if (type === "actual" && weekStart && year && month) {
+      await upsertTsEntry(projectId, employeeId, weekStart, year, month, h);
     } else if (type === "allocation" && year && month) {
       await upsertTsAllocation(projectId, employeeId, year, month, h);
     } else {

@@ -96,7 +96,7 @@ export async function GET(request: Request) {
   // O(1) lookup maps
   const projectMap = new Map(projects.map((p) => [p.id, p]));
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
-  const entryMap = new Map(entries.map((e) => [`${e.project_id}-${e.employee_id}-${e.week_start}`, e]));
+  const entryMap = new Map(entries.map((e) => [`${e.project_id}-${e.employee_id}-${e.week_start}-${e.year}-${e.month}`, e]));
   const monthInfoMap = new Map(monthInfos.map((mi) => [`${mi.year}-${mi.month}`, mi]));
 
   // Group by project+employee
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
 
     const weeklyActual: Record<string, number> = {};
     for (const week of monthInfo?.weeks ?? []) {
-      const entry = entryMap.get(`${alloc.project_id}-${alloc.employee_id}-${week}`);
+      const entry = entryMap.get(`${alloc.project_id}-${alloc.employee_id}-${week}-${alloc.year}-${alloc.month}`);
       weeklyActual[week] = entry?.actual_hours ?? 0;
     }
 
@@ -139,15 +139,10 @@ export async function GET(request: Request) {
 
   const rows = Array.from(rowMap.values()).map((row) => {
     const totalAllocated = Object.values(row.monthData).reduce((s, m) => s + m.allocatedHours, 0);
-    // Boundary weeks are shared between two adjacent months' monthData —
-    // dedupe by week_start so those hours aren't counted twice.
-    const weekHours = new Map<string, number>();
-    for (const m of Object.values(row.monthData)) {
-      for (const [week, hrs] of Object.entries(m.weeklyActual)) {
-        weekHours.set(week, hrs);
-      }
-    }
-    const totalActual = Array.from(weekHours.values()).reduce((a, b) => a + b, 0);
+    const totalActual = Object.values(row.monthData).reduce(
+      (s, m) => s + Object.values(m.weeklyActual).reduce((a, b) => a + b, 0),
+      0
+    );
     return { ...row, totalAllocated, totalActual };
   });
 

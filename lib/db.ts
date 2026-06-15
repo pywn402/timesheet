@@ -59,14 +59,45 @@ async function initSchema(): Promise<void> {
     UNIQUE(project_id, employee_id, week_start)
   )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS ts_entries (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL REFERENCES ts_projects(id),
-    employee_id INTEGER NOT NULL REFERENCES ts_employees(id),
-    week_start TEXT NOT NULL,
-    actual_hours INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(project_id, employee_id, week_start)
-  )`);
+  // ts_entries: each row is one (project, employee, week, year, month) bucket.
+  // A boundary week shared between two months gets two independent rows —
+  // one per month — so each month's portion can be edited separately.
+  const entryCols = (await db.execute(`PRAGMA table_info(ts_entries)`)).rows.map((r) => String(r.name));
+  if (entryCols.length === 0) {
+    await db.execute(`CREATE TABLE ts_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES ts_projects(id),
+      employee_id INTEGER NOT NULL REFERENCES ts_employees(id),
+      week_start TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      actual_hours INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(project_id, employee_id, week_start, year, month)
+    )`);
+  } else if (!entryCols.includes("year")) {
+    // Migrate from the old schema (UNIQUE on project/employee/week_start only).
+    // Assign each existing entry to the calendar month of its week_start.
+    await db.execute(`ALTER TABLE ts_entries RENAME TO ts_entries_old`);
+    await db.execute(`CREATE TABLE ts_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES ts_projects(id),
+      employee_id INTEGER NOT NULL REFERENCES ts_employees(id),
+      week_start TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      actual_hours INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(project_id, employee_id, week_start, year, month)
+    )`);
+    await db.execute(`
+      INSERT INTO ts_entries (project_id, employee_id, week_start, year, month, actual_hours)
+      SELECT project_id, employee_id, week_start,
+             CAST(strftime('%Y', week_start) AS INTEGER),
+             CAST(strftime('%m', week_start) AS INTEGER),
+             actual_hours
+      FROM ts_entries_old
+    `);
+    await db.execute(`DROP TABLE ts_entries_old`);
+  }
 
   // Seed default employees in fixed display order
   const seedNames = ["Phoebe", "Lu Ju", "Wen", "Erin"];
@@ -102,6 +133,8 @@ export interface TsEntry {
   project_id: number;
   employee_id: number;
   week_start: string;
+  year: number;
+  month: number;
   actual_hours: number;
 }
 
@@ -269,6 +302,8 @@ export async function getTsEntries(weekStarts: string[]): Promise<TsEntry[]> {
     project_id: Number(r.project_id),
     employee_id: Number(r.employee_id),
     week_start: String(r.week_start),
+    year: Number(r.year),
+    month: Number(r.month),
     actual_hours: Number(r.actual_hours),
   }));
 }
@@ -277,13 +312,15 @@ export async function upsertTsEntry(
   projectId: number,
   employeeId: number,
   weekStart: string,
+  year: number,
+  month: number,
   hours: number
 ): Promise<void> {
   await ensureInit();
   await getClient().execute({
-    sql: `INSERT INTO ts_entries (project_id, employee_id, week_start, actual_hours)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(project_id, employee_id, week_start) DO UPDATE SET actual_hours = excluded.actual_hours`,
-    args: [projectId, employeeId, weekStart, hours],
+    sql: `INSERT INTO ts_entries (project_id, employee_id, week_start, year, month, actual_hours)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(project_id, employee_id, week_start, year, month) DO UPDATE SET actual_hours = excluded.actual_hours`,
+    args: [projectId, employeeId, weekStart, year, month, hours],
   });
 }
