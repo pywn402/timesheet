@@ -100,7 +100,7 @@ async function initSchema(): Promise<void> {
   }
 
   // Seed default employees in fixed display order
-  const seedNames = ["Phoebe", "Lu Ju", "Wen", "Erin"];
+  const seedNames = ["Phoebe", "Lu Ju", "Wen", "Erin", "Natalie", "Tiffany", "Fanny"];
   for (const name of seedNames) {
     await db.execute({ sql: "INSERT OR IGNORE INTO ts_employees (name) VALUES (?)", args: [name] });
   }
