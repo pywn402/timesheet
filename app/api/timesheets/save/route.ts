@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
-import { upsertTsWeeklyPlan, upsertTsEntry, upsertTsAllocation } from "@/lib/db";
+import { upsertTsEntry, upsertTsAllocation } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -23,9 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "無權限" }, { status: 403 });
     }
 
-    if (type === "plan" && weekStart) {
-      await upsertTsWeeklyPlan(projectId, employeeId, weekStart, h);
-    } else if (type === "actual" && weekStart && year && month) {
+    if (type === "actual" && weekStart && year && month) {
       await upsertTsEntry(projectId, employeeId, weekStart, year, month, h);
     } else if (type === "allocation" && year && month) {
       await upsertTsAllocation(projectId, employeeId, year, month, h);

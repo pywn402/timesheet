@@ -50,15 +50,6 @@ async function initSchema(): Promise<void> {
     UNIQUE(project_id, employee_id, year, month)
   )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS ts_weekly_plan (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL REFERENCES ts_projects(id),
-    employee_id INTEGER NOT NULL REFERENCES ts_employees(id),
-    week_start TEXT NOT NULL,
-    planned_hours INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(project_id, employee_id, week_start)
-  )`);
-
   // ts_entries: each row is one (project, employee, week, year, month) bucket.
   // A boundary week shared between two months gets two independent rows —
   // one per month — so each month's portion can be edited separately.
@@ -118,14 +109,6 @@ export interface TsEmployee {
   id: number;
   name: string;
   password_hash?: string | null;
-}
-
-export interface TsWeeklyPlan {
-  id: number;
-  project_id: number;
-  employee_id: number;
-  week_start: string;
-  planned_hours: number;
 }
 
 export interface TsEntry {
@@ -250,40 +233,6 @@ export async function deleteTsAllocation(
   await getClient().execute({
     sql: "DELETE FROM ts_allocations WHERE project_id = ? AND employee_id = ? AND year = ? AND month = ?",
     args: [projectId, employeeId, year, month],
-  });
-}
-
-// ---- Weekly Plan ----
-
-export async function getTsWeeklyPlans(weekStarts: string[]): Promise<TsWeeklyPlan[]> {
-  if (weekStarts.length === 0) return [];
-  await ensureInit();
-  const placeholders = weekStarts.map(() => "?").join(",");
-  const result = await getClient().execute({
-    sql: `SELECT * FROM ts_weekly_plan WHERE week_start IN (${placeholders})`,
-    args: weekStarts,
-  });
-  return result.rows.map((r) => ({
-    id: Number(r.id),
-    project_id: Number(r.project_id),
-    employee_id: Number(r.employee_id),
-    week_start: String(r.week_start),
-    planned_hours: Number(r.planned_hours),
-  }));
-}
-
-export async function upsertTsWeeklyPlan(
-  projectId: number,
-  employeeId: number,
-  weekStart: string,
-  hours: number
-): Promise<void> {
-  await ensureInit();
-  await getClient().execute({
-    sql: `INSERT INTO ts_weekly_plan (project_id, employee_id, week_start, planned_hours)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(project_id, employee_id, week_start) DO UPDATE SET planned_hours = excluded.planned_hours`,
-    args: [projectId, employeeId, weekStart, hours],
   });
 }
 
