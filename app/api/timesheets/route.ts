@@ -110,6 +110,10 @@ export async function GET(request: Request) {
   }>();
 
   for (const alloc of allocations) {
+    // Skip departed employees — their allocations stay in the DB but are not
+    // part of the timesheet view.
+    if (!employeeMap.has(alloc.employee_id)) continue;
+
     const key = `${alloc.project_id}-${alloc.employee_id}`;
     if (!rowMap.has(key)) {
       const project = projectMap.get(alloc.project_id);
