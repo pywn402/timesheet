@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const employee = await getTsEmployeeByName(username.trim());
 
-  if (!employee || !employee.password_hash) {
+  if (!employee || !employee.password_hash || !employee.active) {
     return NextResponse.json({ error: "帳號或密碼錯誤" }, { status: 401 });
   }
 

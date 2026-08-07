@@ -37,8 +37,15 @@ async function initSchema(): Promise<void> {
   await db.execute(`CREATE TABLE IF NOT EXISTS ts_employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
-    password_hash TEXT
+    password_hash TEXT,
+    active INTEGER NOT NULL DEFAULT 1
   )`);
+
+  // Migrate older databases created before the `active` column existed.
+  const empCols = (await db.execute(`PRAGMA table_info(ts_employees)`)).rows.map((r) => String(r.name));
+  if (!empCols.includes("active")) {
+    await db.execute(`ALTER TABLE ts_employees ADD COLUMN active INTEGER NOT NULL DEFAULT 1`);
+  }
 
   await db.execute(`CREATE TABLE IF NOT EXISTS ts_allocations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +98,7 @@ async function initSchema(): Promise<void> {
   }
 
   // Seed default employees in fixed display order
-  const seedNames = ["Phoebe", "Lu Ju", "Wen", "Erin", "Natalie", "Tiffany", "Fanny"];
+  const seedNames = ["Phoebe", "Lu Ju", "Erin", "Natalie", "Tiffany", "Fanny"];
   for (const name of seedNames) {
     await db.execute({ sql: "INSERT OR IGNORE INTO ts_employees (name) VALUES (?)", args: [name] });
   }
@@ -109,6 +116,7 @@ export interface TsEmployee {
   id: number;
   name: string;
   password_hash?: string | null;
+  active: boolean;
 }
 
 export interface TsEntry {
@@ -148,14 +156,28 @@ export async function updateTsProject(id: number, code: string, name: string): P
 
 // ---- Employees ----
 
-export async function getTsEmployees(): Promise<TsEmployee[]> {
+// Returns active employees only by default; pass includeInactive for
+// backend/reporting queries that need departed employees too.
+export async function getTsEmployees(includeInactive = false): Promise<TsEmployee[]> {
   await ensureInit();
-  const result = await getClient().execute("SELECT * FROM ts_employees ORDER BY id");
+  const sql = includeInactive
+    ? "SELECT * FROM ts_employees ORDER BY id"
+    : "SELECT * FROM ts_employees WHERE active = 1 ORDER BY id";
+  const result = await getClient().execute(sql);
   return result.rows.map((r) => ({
     id: Number(r.id),
     name: String(r.name),
     password_hash: r.password_hash != null ? String(r.password_hash) : null,
+    active: Number(r.active) === 1,
   }));
+}
+
+export async function setEmployeeActive(employeeId: number, active: boolean): Promise<void> {
+  await ensureInit();
+  await getClient().execute({
+    sql: "UPDATE ts_employees SET active = ? WHERE id = ?",
+    args: [active ? 1 : 0, employeeId],
+  });
 }
 
 export async function getTsEmployeeByName(name: string): Promise<TsEmployee | null> {
@@ -167,6 +189,7 @@ export async function getTsEmployeeByName(name: string): Promise<TsEmployee | nu
     id: Number(r.id),
     name: String(r.name),
     password_hash: r.password_hash != null ? String(r.password_hash) : null,
+    active: Number(r.active) === 1,
   };
 }
 
