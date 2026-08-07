@@ -31,8 +31,15 @@ async function initSchema(): Promise<void> {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT NOT NULL,
     name TEXT NOT NULL,
+    archived INTEGER NOT NULL DEFAULT 0,
     UNIQUE(code)
   )`);
+
+  // Migrate older databases created before the `archived` column existed.
+  const projCols = (await db.execute(`PRAGMA table_info(ts_projects)`)).rows.map((r) => String(r.name));
+  if (!projCols.includes("archived")) {
+    await db.execute(`ALTER TABLE ts_projects ADD COLUMN archived INTEGER NOT NULL DEFAULT 0`);
+  }
 
   await db.execute(`CREATE TABLE IF NOT EXISTS ts_employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,6 +117,7 @@ export interface TsProject {
   id: number;
   code: string;
   name: string;
+  archived: boolean;
 }
 
 export interface TsEmployee {
@@ -131,10 +139,28 @@ export interface TsEntry {
 
 // ---- Projects ----
 
-export async function getTsProjects(): Promise<TsProject[]> {
+// Returns live projects only by default. Archived projects stay in the DB with
+// all their allocations and entries; pass includeArchived to see them.
+export async function getTsProjects(includeArchived = false): Promise<TsProject[]> {
   await ensureInit();
-  const result = await getClient().execute("SELECT * FROM ts_projects ORDER BY code");
-  return result.rows.map((r) => ({ id: Number(r.id), code: String(r.code), name: String(r.name) }));
+  const sql = includeArchived
+    ? "SELECT * FROM ts_projects ORDER BY code"
+    : "SELECT * FROM ts_projects WHERE archived = 0 ORDER BY code";
+  const result = await getClient().execute(sql);
+  return result.rows.map((r) => ({
+    id: Number(r.id),
+    code: String(r.code),
+    name: String(r.name),
+    archived: Number(r.archived) === 1,
+  }));
+}
+
+export async function setProjectArchived(id: number, archived: boolean): Promise<void> {
+  await ensureInit();
+  await getClient().execute({
+    sql: "UPDATE ts_projects SET archived = ? WHERE id = ?",
+    args: [archived ? 1 : 0, id],
+  });
 }
 
 export async function createTsProject(code: string, name: string): Promise<number> {
@@ -142,7 +168,9 @@ export async function createTsProject(code: string, name: string): Promise<numbe
   const db = getClient();
   const existing = await db.execute({ sql: "SELECT id FROM ts_projects WHERE code = ?", args: [code] });
   if (existing.rows.length > 0) {
-    await db.execute({ sql: "UPDATE ts_projects SET name = ? WHERE code = ?", args: [name, code] });
+    // Adding an allocation to an archived project brings it back into view —
+    // otherwise the new row would be invisible the moment it was created.
+    await db.execute({ sql: "UPDATE ts_projects SET name = ?, archived = 0 WHERE code = ?", args: [name, code] });
     return Number(existing.rows[0].id);
   }
   const result = await db.execute({ sql: "INSERT INTO ts_projects (code, name) VALUES (?, ?)", args: [code, name] });

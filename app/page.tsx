@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, LogOut, KeyRound, Check, Copy, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, LogOut, KeyRound, Check, Copy, Pencil, EyeOff, Archive } from "lucide-react";
 
 const ADMIN_USER = "Phoebe";
 
@@ -254,6 +254,7 @@ function EmployeeSection({
   onSaveActual,
   onDelete,
   onEdit,
+  onArchive,
 }: {
   employee: Employee;
   rows: MultiMonthRow[];
@@ -264,6 +265,7 @@ function EmployeeSection({
   onSaveActual: (projectId: number, employeeId: number, weekStart: string, year: number, month: number, hours: number) => void;
   onDelete: (projectId: number, employeeId: number, name: string) => void;
   onEdit: (projectId: number, code: string, name: string) => void;
+  onArchive: (projectId: number, projectName: string) => void;
 }) {
   const emp_initials = employee.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -354,6 +356,15 @@ function EmployeeSection({
                                 className="text-[#6f6f6f] hover:text-[#0f62fe] transition-colors shrink-0"
                               >
                                 <Pencil size={11} />
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => onArchive(row.projectId, row.projectName)}
+                                title="隱藏專案（保留資料）"
+                                className="text-[#6f6f6f] hover:text-[#0f62fe] transition-colors shrink-0"
+                              >
+                                <EyeOff size={11} />
                               </button>
                             )}
                             {isAdmin && (
@@ -654,6 +665,43 @@ export default function Home() {
     }
   };
 
+  const [showArchivedModal, setShowArchivedModal] = useState(false);
+  const [archivedProjects, setArchivedProjects] = useState<{ id: number; code: string; name: string; archived: boolean }[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+
+  const loadArchived = useCallback(async () => {
+    setArchivedLoading(true);
+    try {
+      const res = await fetch("/api/projects?includeArchived=1", { cache: "no-store" });
+      if (!res.ok) return;
+      const all = await res.json();
+      setArchivedProjects(all.filter((p: { archived: boolean }) => p.archived));
+    } finally {
+      setArchivedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { if (showArchivedModal) loadArchived(); }, [showArchivedModal, loadArchived]);
+
+  const setProjectArchived = async (projectId: number, archived: boolean) => {
+    await fetch("/api/projects", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: projectId, archived }),
+    });
+    await load();
+  };
+
+  const archiveProject = async (projectId: number, projectName: string) => {
+    if (!confirm(`確定隱藏專案「${projectName}」？\n\n所有人的工時紀錄都會保留在資料庫，只是不再顯示於前台。之後可從右上角的「已隱藏專案」取消隱藏。`)) return;
+    await setProjectArchived(projectId, true);
+  };
+
+  const unarchiveProject = async (projectId: number) => {
+    await setProjectArchived(projectId, false);
+    await loadArchived();
+  };
+
   const deleteRow = async (projectId: number, employeeId: number, name: string) => {
     if (!confirm(`確定刪除 ${name} 在此期間的工時分配？`)) return;
     const months = data?.months.map((m) => ({ year: m.year, month: m.month })) ?? [];
@@ -697,6 +745,15 @@ export default function Home() {
           </button>
         )}
         <div className="flex items-center gap-2 ml-2 pl-4 border-l border-[#e0e0e0]">
+          {isAdmin && (
+            <button
+              onClick={() => setShowArchivedModal(true)}
+              title="已隱藏專案"
+              className="p-1.5 text-[#6f6f6f] hover:text-[#0f62fe] transition-colors rounded hover:bg-[#e8e8e8]"
+            >
+              <Archive size={14} />
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={() => setShowPwModal(true)}
@@ -761,11 +818,51 @@ export default function Home() {
                 onSaveActual={saveActual}
                 onDelete={deleteRow}
                 onEdit={(id, code, name) => { setEditProject({ id, code, name }); setEditError(""); }}
+                onArchive={archiveProject}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Archived Projects Modal */}
+      {showArchivedModal && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowArchivedModal(false); }}
+        >
+          <div className="bg-white border border-[#e0e0e0] rounded-2xl p-6 w-[460px] max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[15px] font-semibold text-[#161616]">已隱藏專案</h2>
+              <button onClick={() => setShowArchivedModal(false)} className="text-[#6f6f6f] hover:text-[#161616] transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-[12px] text-[#8d8d8d] mb-4">工時紀錄都保留在資料庫，取消隱藏後會重新顯示於前台。</p>
+
+            {archivedLoading ? (
+              <p className="text-[13px] text-[#6f6f6f] py-6 text-center">載入中...</p>
+            ) : archivedProjects.length === 0 ? (
+              <p className="text-[13px] text-[#6f6f6f] py-6 text-center">目前沒有隱藏的專案</p>
+            ) : (
+              <div className="space-y-2 overflow-y-auto">
+                {archivedProjects.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2">
+                    <span className="font-mono text-[11px] font-bold text-[#0f62fe] bg-[#edf5ff] px-1.5 py-0.5 rounded shrink-0">{p.code}</span>
+                    <span className="text-[13px] text-[#161616] flex-1 truncate">{p.name}</span>
+                    <button
+                      onClick={() => unarchiveProject(p.id)}
+                      className="px-2.5 py-1 text-[12px] text-[#0f62fe] border border-[#0f62fe] rounded-lg hover:bg-[#edf5ff] transition-colors shrink-0"
+                    >
+                      取消隱藏
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Edit Project Modal */}
       {editProject && (
