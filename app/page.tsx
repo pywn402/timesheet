@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, LogOut, KeyRound, Check, Copy, Pencil, EyeOff, Archive } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, LogOut, KeyRound, Check, Copy, Pencil, EyeOff, Archive, Download } from "lucide-react";
 
 const ADMIN_USER = "Phoebe";
 
@@ -665,6 +665,36 @@ export default function Home() {
     }
   };
 
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportYear, setReportYear] = useState(startYear);
+  const [reportHidden, setReportHidden] = useState(true);
+  const [reportDeparted, setReportDeparted] = useState(true);
+  const [reportSummary, setReportSummary] = useState<{
+    rows: number; hiddenProjectRows: number; departedEmployeeRows: number;
+    totalAllocated: number; totalActual: number;
+  } | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const reportQuery = `startYear=${reportYear}&startMonth=1&numMonths=12` +
+    `&includeHiddenProjects=${reportHidden ? 1 : 0}` +
+    `&includeDepartedEmployees=${reportDeparted ? 1 : 0}`;
+
+  // Keep the year in sync with the table whenever the dialog is reopened.
+  useEffect(() => { if (showReportModal) setReportYear(startYear); }, [showReportModal, startYear]);
+
+  useEffect(() => {
+    if (!showReportModal) return;
+    let cancelled = false;
+    setReportLoading(true);
+    setReportSummary(null);
+    fetch(`/api/reports?${reportQuery}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setReportSummary(j?.summary ?? null); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setReportLoading(false); });
+    return () => { cancelled = true; };
+  }, [showReportModal, reportQuery]);
+
   const [showArchivedModal, setShowArchivedModal] = useState(false);
   const [archivedProjects, setArchivedProjects] = useState<{ id: number; code: string; name: string; archived: boolean }[]>([]);
   const [archivedLoading, setArchivedLoading] = useState(false);
@@ -747,6 +777,15 @@ export default function Home() {
         <div className="flex items-center gap-2 ml-2 pl-4 border-l border-[#e0e0e0]">
           {isAdmin && (
             <button
+              onClick={() => setShowReportModal(true)}
+              title="匯出報表"
+              className="p-1.5 text-[#6f6f6f] hover:text-[#0f62fe] transition-colors rounded hover:bg-[#e8e8e8]"
+            >
+              <Download size={14} />
+            </button>
+          )}
+          {isAdmin && (
+            <button
               onClick={() => setShowArchivedModal(true)}
               title="已隱藏專案"
               className="p-1.5 text-[#6f6f6f] hover:text-[#0f62fe] transition-colors rounded hover:bg-[#e8e8e8]"
@@ -824,6 +863,104 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Export Report Modal */}
+      {showReportModal && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowReportModal(false); }}
+        >
+          <div className="bg-white border border-[#e0e0e0] rounded-2xl p-6 w-[440px] shadow-2xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[15px] font-semibold text-[#161616]">匯出報表</h2>
+              <button onClick={() => setShowReportModal(false)} className="text-[#6f6f6f] hover:text-[#161616] transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-[12px] text-[#8d8d8d] mb-4">下載整年度的計畫與實際工時，可包含已隱藏的專案與已離職人員。</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] text-[#8d8d8d] mb-1.5 uppercase tracking-wider">年份</label>
+                <div className="flex items-center gap-1 bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-1 h-9 w-fit">
+                  <button
+                    onClick={() => setReportYear((y) => y - 1)}
+                    className="p-1 rounded hover:bg-[#e0e0e0] text-[#8d8d8d] hover:text-[#0f62fe] transition-colors"
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  <span className="text-[13px] text-[#161616] min-w-[70px] text-center">{reportYear}年</span>
+                  <button
+                    onClick={() => setReportYear((y) => y + 1)}
+                    className="p-1 rounded hover:bg-[#e0e0e0] text-[#8d8d8d] hover:text-[#0f62fe] transition-colors"
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {[
+                  { checked: reportHidden, set: setReportHidden, label: "包含已隱藏的專案" },
+                  { checked: reportDeparted, set: setReportDeparted, label: "包含已離職的人員" },
+                ].map(({ checked, set, label }) => (
+                  <label key={label} className="flex items-center gap-2 text-[13px] text-[#161616] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => set(e.target.checked)}
+                      className="w-4 h-4 accent-[#0f62fe] cursor-pointer"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+
+              <div className="bg-[#f4f4f4] border border-[#e0e0e0] rounded-lg px-3 py-2.5 text-[12px]">
+                {reportLoading ? (
+                  <span className="text-[#6f6f6f]">計算中...</span>
+                ) : !reportSummary ? (
+                  <span className="text-[#6f6f6f]">無法取得摘要</span>
+                ) : reportSummary.rows === 0 ? (
+                  <span className="text-[#6f6f6f]">這個範圍沒有資料</span>
+                ) : (
+                  <div className="space-y-0.5 text-[#525252]">
+                    <div>
+                      共 <span className="font-semibold text-[#161616]">{reportSummary.rows}</span> 筆專案 × 人員
+                      {reportSummary.hiddenProjectRows > 0 && `，其中 ${reportSummary.hiddenProjectRows} 筆屬於已隱藏專案`}
+                      {reportSummary.departedEmployeeRows > 0 && `，${reportSummary.departedEmployeeRows} 筆屬於已離職人員`}
+                    </div>
+                    <div>
+                      計畫 <span className="font-semibold text-[#161616]">{reportSummary.totalAllocated}</span> h
+                      　實際 <span className="font-semibold text-[#161616]">{reportSummary.totalActual}</span> h
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 text-[13px] text-[#a8a8a8] border border-[#e0e0e0] rounded-lg hover:bg-[#e8e8e8] transition-colors"
+                >
+                  取消
+                </button>
+                <a
+                  href={`/api/reports?${reportQuery}&format=csv`}
+                  onClick={() => setShowReportModal(false)}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-[13px] text-white rounded-lg transition-colors ${
+                    reportSummary && reportSummary.rows > 0
+                      ? "bg-[#0f62fe] hover:bg-[#0353e9]"
+                      : "bg-[#c6c6c6] pointer-events-none"
+                  }`}
+                >
+                  <Download size={14} />下載 CSV
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Archived Projects Modal */}
       {showArchivedModal && (
