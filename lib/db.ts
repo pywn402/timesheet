@@ -61,8 +61,15 @@ async function initSchema(): Promise<void> {
     year INTEGER NOT NULL,
     month INTEGER NOT NULL,
     allocated_hours INTEGER NOT NULL DEFAULT 0,
+    deleted INTEGER NOT NULL DEFAULT 0,
     UNIQUE(project_id, employee_id, year, month)
   )`);
+
+  // Migrate older databases created before the `deleted` column existed.
+  const allocCols = (await db.execute(`PRAGMA table_info(ts_allocations)`)).rows.map((r) => String(r.name));
+  if (!allocCols.includes("deleted")) {
+    await db.execute(`ALTER TABLE ts_allocations ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0`);
+  }
 
   // ts_entries: each row is one (project, employee, week, year, month) bucket.
   // A boundary week shared between two months gets two independent rows —
@@ -245,7 +252,7 @@ export async function getTsAllocationsMultiMonth(
   const conditions = months.map(() => "(year = ? AND month = ?)").join(" OR ");
   const args = months.flatMap(({ year, month }) => [year, month]);
   const result = await getClient().execute({
-    sql: `SELECT * FROM ts_allocations WHERE ${conditions} ORDER BY project_id, employee_id, year, month`,
+    sql: `SELECT * FROM ts_allocations WHERE deleted = 0 AND (${conditions}) ORDER BY project_id, employee_id, year, month`,
     args,
   });
   return result.rows.map((r) => ({
@@ -269,11 +276,13 @@ export async function upsertTsAllocation(
   await getClient().execute({
     sql: `INSERT INTO ts_allocations (project_id, employee_id, year, month, allocated_hours)
           VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(project_id, employee_id, year, month) DO UPDATE SET allocated_hours = excluded.allocated_hours`,
+          ON CONFLICT(project_id, employee_id, year, month) DO UPDATE SET allocated_hours = excluded.allocated_hours, deleted = 0`,
     args: [projectId, employeeId, year, month, hours],
   });
 }
 
+// Soft delete: the row stays in the DB (hours intact) but drops out of every
+// allocation query. Adding or saving the same allocation again brings it back.
 export async function deleteTsAllocation(
   projectId: number,
   employeeId: number,
@@ -282,7 +291,7 @@ export async function deleteTsAllocation(
 ): Promise<void> {
   await ensureInit();
   await getClient().execute({
-    sql: "DELETE FROM ts_allocations WHERE project_id = ? AND employee_id = ? AND year = ? AND month = ?",
+    sql: "UPDATE ts_allocations SET deleted = 1 WHERE project_id = ? AND employee_id = ? AND year = ? AND month = ?",
     args: [projectId, employeeId, year, month],
   });
 }
