@@ -97,7 +97,8 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json(
-    { months: monthInfos, rows, employees },
+    // Whitelist fields — never spread the DB row, it carries password_hash.
+    { months: monthInfos, rows, employees: employees.map((e) => ({ id: e.id, name: e.name })) },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
